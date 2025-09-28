@@ -20,50 +20,56 @@ pipeline{
         SSH_CREDENTIALS_ID = "db284ef7-fff6-48de-98f9-025879ec2fe3"
     }
 
-    stages{
+    stages {
         stage('Git Checkout') {
-            steps{
+            steps { // step : stage 안에서 실행할 실제 명령어
+                // Jenkins가 연결된 Git 저장소에서 최신 코드 체크아웃
                 checkout scm
             }
         }
 
-        stage('Maven Build'){
+        stage('Maven Build') {
             steps {
-                sh 'mvn clean package -DskipTests' // jenkins에서 리눅스 명령어 실행 방법
+                // 테스트는 건너뛰고 Maven 빌드
+                sh 'mvn clean package -DskipTests'
+                // sh 'echo Hello' : 리눅스 명령어 실행
             }
         }
 
         stage('Prepare Jar') {
             steps {
-                // 빌드 결과물인 JAR 파일을 지정한 이름 app.jar 으로 복사
+                // 빌드 결과물인 JAR 파일을 지정한 이름(app.jar)으로 복사
                 sh 'cp target/demo-0.0.1-SNAPSHOT.jar ${JAR_FILE_NAME}'
             }
         }
+
         stage('Copy to Remote Server') {
             steps {
-                // Jenkins가 원격 서버에 SSH 접속할수 있도록 sshagent 사용
-                sshagent(credentials:[env.SSH_CREDENTIALS_ID]){
+                // Jenkins가 원격 서버에 SSH 접속할 수 있도록 sshagent 사용
+                sshagent (credentials: [env.SSH_CREDENTIALS_ID]) {
                     // 원격 서버에 배포 디렉토리 생성 (없으면 새로 만듦)
                     sh "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${REMOTE_USER}@${REMOTE_HOST} \"mkdir -p ${REMOTE_DIR}\""
                     // JAR 파일과 Dockerfile을 원격 서버에 복사
                     sh "scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${JAR_FILE_NAME} Dockerfile ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIR}/"
                 }
-                
-            }            
+            }
         }
+
         stage('Remote Docker Build & Deploy') {
             steps {
                 sshagent (credentials: [env.SSH_CREDENTIALS_ID]) {
-                    sh """
-                    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${REMOTE_USER}@${REMOTE_HOST} << ENDSSH \
-                    cd ${REMOTE_DIR} || exit 1 \
-                    docker rm -f ${CONTAINER_NAME} || true \
-                    docker build -t ${DOCKER_IMAGE} . \
-                    docker run -d --name ${CONTAINER_NAME} -p ${PORT}:${PORT} ${DOCKER_IMAGE} \
-                    ENDSSH \
-                    """
+        sh """
+ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${REMOTE_USER}@${REMOTE_HOST} << ENDSSH
+    cd ${REMOTE_DIR} || exit 1
+    docker rm -f ${CONTAINER_NAME} || true
+    docker build -t ${DOCKER_IMAGE} .
+    docker run -d --name ${CONTAINER_NAME} -p ${PORT}:${PORT} ${DOCKER_IMAGE}
+ENDSSH
+"""
                 }
             }
         }
+
     }
+
 }
