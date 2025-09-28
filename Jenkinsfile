@@ -59,7 +59,7 @@ pipeline{
                     ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${REMOTE_USER}@${REMOTE_HOST} << ENDSSH
                     cd ${REMOTE_DIR} || exit 1
                     docker rm -f ${CONTAINER_NAME} || true
-                    ddocker build -t ${DOCKER_IMAGE} .
+                    docker build -t ${DOCKER_IMAGE} .
                     docker run -d --name ${CONTAINER_NAME} -p ${PORT}:${PORT} ${DOCKER_IMAGE}
                     ENDSSH
                     """
