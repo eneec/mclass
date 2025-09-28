@@ -5,7 +5,7 @@ WORKDIR /app
 
 #Maven 또는 Gradle 빌드 후 생성된 JAR 파일을 컨테이너 내부 /app 디렉토리에 app.jar 이름으로 복사
 #Jenkins에 생성된 app.jar 파일을 컨테이너 내부 /app/app.jar 파일로 복사
-COPY app.jar app.JAR
+COPY app.jar app.jar
 
 #컨테이너가 외부와 통신하기 위한 PORT
 EXPOSE 8081
